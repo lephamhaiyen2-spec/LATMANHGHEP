@@ -1,3 +1,5 @@
+window.addEventListener("error",function(e){var b=document.querySelector("#bootError");if(b){b.classList.remove("hidden");b.textContent="⚠️ Ứng dụng gặp lỗi: "+(e.message||"JavaScript")+" — hãy tải lại trang.";}});
+window.addEventListener("unhandledrejection",function(){var b=document.querySelector("#bootError");if(b){b.classList.remove("hidden");b.textContent="⚠️ Không xử lý được dữ liệu. Hãy tải lại trang và thử lại.";}});
 window.addEventListener("error", (event) => {
   const box = document.querySelector("#bootError");
   if (box) {

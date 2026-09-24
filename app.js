@@ -32,55 +32,110 @@ $("#excelInput").addEventListener("change", async (e) => {
   const f = e.target.files?.[0];
   if (!f) return;
   $("#excelName").textContent = f.name;
+
   try {
     const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     if (!sheet) throw new Error("Không có trang tính");
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    S.allQs = rows.map((r) => {
-      const n = {};
-      Object.keys(r).forEach((k) => n[String(k).trim().toLowerCase()] = r[k]);
+    // Đọc trực tiếp theo ma trận để không phụ thuộc cách Excel đặt tên/định dạng header.
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+    if (!matrix.length) throw new Error("File không có dữ liệu");
 
-      const get = (...keys) => {
-        for (const key of keys) {
-          const v = n[key];
-          if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
-        }
-        return "";
-      };
+    const headers = matrix[0].map(normalizeHeader);
+    const findCol = (...names) => {
+      const wanted = names.map(normalizeHeader);
+      return headers.findIndex(h => wanted.includes(h));
+    };
 
-      const rawAns = get("đáp án đúng", "đáp án", "dap an dung", "dap an", "answer");
-      const ans = normalizeAnswer(rawAns);
+    const qCol = findCol("Câu hỏi", "Cau hoi", "Question");
+    const aCol = findCol("Đáp án A", "A");
+    const bCol = findCol("Đáp án B", "B");
+    const cCol = findCol("Đáp án C", "C");
+    const dCol = findCol("Đáp án D", "D");
+    const ansCol = findCol("Đáp án đúng", "Đáp án", "Dap an dung", "Dap an", "Answer");
 
-      return {
-        q: get("câu hỏi", "cau hoi", "question"),
-        A: get("a", "đáp án a"),
-        B: get("b", "đáp án b"),
-        C: get("c", "đáp án c"),
-        D: get("d", "đáp án d"),
-        ans
-      };
-    }).filter((x) => x.q && x.A && x.B && x.C && x.D && "ABCD".includes(x.ans));
+    if ([qCol,aCol,bCol,cCol,dCol,ansCol].some(x => x < 0)) {
+      throw new Error("HEADER");
+    }
+
+    S.allQs = matrix.slice(1).map((row) => {
+      const q = cleanCell(row[qCol]);
+      const A = cleanCell(row[aCol]);
+      const B = cleanCell(row[bCol]);
+      const C = cleanCell(row[cCol]);
+      const D = cleanCell(row[dCol]);
+      const rawAns = cleanCell(row[ansCol]);
+
+      // Ưu tiên A/B/C/D; nếu ô đáp án chứa luôn nội dung đáp án thì đối chiếu với 4 lựa chọn.
+      let ans = normalizeAnswer(rawAns);
+      if (!ans) ans = inferAnswerFromText(rawAns, {A,B,C,D});
+
+      return { q, A, B, C, D, ans };
+    }).filter(x => x.q && x.A && x.B && x.C && x.D && /^[ABCD]$/.test(x.ans));
+
+    const needed = S.grid * S.grid;
+    if (S.allQs.length) {
+      $("#validation").textContent =
+        "✓ Đã đọc " + S.allQs.length + " câu hỏi hợp lệ. " +
+        "Câu 1: đáp án đúng = " + S.allQs[0].ans + ".";
+      $("#validation").className = S.allQs.length >= needed ? "validation ok" : "validation err";
+    }
 
     checkReady();
   } catch (err) {
     S.allQs = [];
-    $("#validation").textContent = "Không đọc được file Excel/CSV. Hãy kiểm tra đúng mẫu cột: Câu hỏi, A, B, C, D, Đáp án.";
+    $("#validation").textContent =
+      err.message === "HEADER"
+        ? "Không nhận diện được tiêu đề cột. Hãy dùng đúng mẫu: Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng."
+        : "Không đọc được file Excel. Hãy kiểm tra lại file mẫu.";
     $("#validation").className = "validation err";
     $("#startBtn").disabled = true;
     $("#shareBtn").disabled = true;
   }
 });
 
+function normalizeHeader(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function cleanCell(value) {
+  return String(value ?? "").trim();
+}
+
 function normalizeAnswer(value) {
-  const t = String(value ?? "").trim().toUpperCase();
+  const t = cleanCell(value).toUpperCase();
   if (/^[ABCD]$/.test(t)) return t;
-  const m = t.match(/^([ABCD])(?:[.)\s]|$)/);
-  if (m) return m[1];
+
   const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const m2 = noAccent.match(/(?:DAP\s*AN|ANSWER)\s*[:\-]?\s*([ABCD])(?:$|\s|[.)])/);
-  if (m2) return m2[1];
+  const m = noAccent.match(/(?:DAP\s*AN|ANSWER)?\s*[:\-]?\s*\(?([ABCD])\)?(?:[.)\s]|$)/);
+  if (m) return m[1];
+
+  return "";
+}
+
+function normalizeCompare(value) {
+  return cleanCell(value)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.\)\(:\-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferAnswerFromText(raw, options) {
+  const target = normalizeCompare(raw);
+  if (!target) return "";
+
+  for (const key of ["A","B","C","D"]) {
+    if (target === normalizeCompare(options[key])) return key;
+  }
   return "";
 }
 
@@ -199,7 +254,7 @@ function answerQuestion(key) {
   document.querySelectorAll(".answer").forEach((b) => b.disabled = true);
   S.done++;
 
-  const correct = key.toUpperCase() === String(q.ans).trim().toUpperCase();
+  const correct = normalizeCompare(key) === normalizeCompare(q.ans);
   $("#qStatus").textContent = correct ? "Đúng" : "Sai";
 
   if (correct) {

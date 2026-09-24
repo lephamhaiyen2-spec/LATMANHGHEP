@@ -51,7 +51,7 @@ $("#excelInput").addEventListener("change", async (e) => {
       };
 
       const rawAns = get("đáp án", "dap an", "answer");
-      const ans = rawAns.toUpperCase().replace(/[^ABCD]/g, "").charAt(0);
+      const ans = normalizeAnswer(rawAns);
 
       return {
         q: get("câu hỏi", "cau hoi", "question"),
@@ -72,6 +72,17 @@ $("#excelInput").addEventListener("change", async (e) => {
     $("#shareBtn").disabled = true;
   }
 });
+
+function normalizeAnswer(value) {
+  const t = String(value ?? "").trim().toUpperCase();
+  if (/^[ABCD]$/.test(t)) return t;
+  const m = t.match(/^([ABCD])(?:[.)\s]|$)/);
+  if (m) return m[1];
+  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const m2 = noAccent.match(/(?:DAP\s*AN|ANSWER)\s*[:\-]?\s*([ABCD])(?:$|\s|[.)])/);
+  if (m2) return m2[1];
+  return "";
+}
 
 function checkReady() {
   const needed = S.grid * S.grid;
@@ -188,7 +199,7 @@ function answerQuestion(key) {
   document.querySelectorAll(".answer").forEach((b) => b.disabled = true);
   S.done++;
 
-  const correct = key === q.ans;
+  const correct = key.toUpperCase() === String(q.ans).trim().toUpperCase();
   $("#qStatus").textContent = correct ? "Đúng" : "Sai";
 
   if (correct) {

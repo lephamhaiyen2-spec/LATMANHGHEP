@@ -49,7 +49,7 @@ export default {
         }
 
         // The teacher token is only used to view the teacher's 24-hour history.
-        const teacherToken = randomCode(20);
+        const teacherToken = String(body.teacherToken || randomCode(20)).replace(/[^A-Za-z0-9]/g, "").slice(0, 20);
         const code = randomCode(8);
         const now = Date.now();
         const expiresAt = now + TTL * 1000;

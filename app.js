@@ -1,3 +1,18 @@
+window.addEventListener("error", (event) => {
+  const box = document.querySelector("#bootError");
+  if (box) {
+    box.classList.remove("hidden");
+    box.textContent = "⚠️ Ứng dụng gặp lỗi khi khởi động: " + (event.message || "lỗi JavaScript") + ". Hãy tải lại trang.";
+  }
+});
+window.addEventListener("unhandledrejection", (event) => {
+  const box = document.querySelector("#bootError");
+  if (box) {
+    box.classList.remove("hidden");
+    box.textContent = "⚠️ Ứng dụng gặp lỗi khi xử lý dữ liệu. Hãy tải lại trang và thử lại.";
+  }
+});
+
 const $ = (s) => document.querySelector(s);
 
 const S = {
@@ -29,6 +44,11 @@ $("#imageInput").addEventListener("change", (e) => {
 });
 
 $("#excelInput").addEventListener("change", async (e) => {
+  if (typeof XLSX === "undefined") {
+    $("#validation").textContent = "⚠️ Thư viện Excel chưa tải được. Hãy tải lại trang hoặc kiểm tra kết nối Internet.";
+    $("#validation").className = "validation err";
+    return;
+  }
   const f = e.target.files?.[0];
   if (!f) return;
   $("#excelName").textContent = f.name;
@@ -110,13 +130,16 @@ function cleanCell(value) {
 
 function normalizeAnswer(value) {
   const t = cleanCell(value).toUpperCase();
+  if (!t) return "";
   if (/^[ABCD]$/.test(t)) return t;
 
-  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const m = noAccent.match(/(?:DAP\s*AN|ANSWER)?\s*[:\-]?\s*\(?([ABCD])\)?(?:[.)\s]|$)/);
+  const noAccent = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const m = noAccent.match(/(?:DAP\s*AN|ANSWER|OPTION|LUACHON)?\s*[:\-]?\s*\(?([ABCD])\)?(?:[.)\s]|$)/);
   if (m) return m[1];
 
-  return "";
+  // Accept forms such as "A.", "A)", "(A)", "Đáp án: A", "answer A".
+  const first = noAccent.match(/^\(?([ABCD])\)?(?:[.)\s:]|$)/);
+  return first ? first[1] : "";
 }
 
 function normalizeCompare(value) {
@@ -395,7 +418,6 @@ async function createShareLink() {
 
     $("#shareLink").value = link;
     $("#shareBox").classList.remove("hidden");
-    if (typeof QRCode !== "undefined") { $("#qrCode").innerHTML=""; new QRCode($("#qrCode"), {text:link,width:180,height:180}); }
     $("#shareNote").textContent =
       "✓ Đã tạo link. " + qs.length + " câu hỏi sẽ được giao đúng theo thứ tự đã chọn.";
     $("#shareLimit").textContent =
@@ -494,6 +516,10 @@ checkReady();
 loadStudentLink();
 
 function downloadTemplate() {
+  if (typeof XLSX === "undefined") {
+    alert("Thư viện Excel chưa tải được. Hãy tải lại trang rồi thử lại.");
+    return;
+  }
   const rows = [
     ["ID", "Câu hỏi", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án đúng"],
     [1, "DNA được cấu tạo từ những loại nucleotide nào?", "A, T, G, X", "A, U, G, X", "A, T, U, G", "T, U, G, X", "A"],

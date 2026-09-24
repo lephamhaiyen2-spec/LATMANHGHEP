@@ -98,6 +98,7 @@ $("#startBtn").addEventListener("click", () => startGame(false));
 $("#shareBtn").addEventListener("click", createShareLink);
 $("#copyShareBtn").addEventListener("click", copyShareLink);
 $("#downloadQRBtn").addEventListener("click", downloadQR);
+$("#downloadQRBtn").addEventListener("click", downloadQR);
 $("#studentStart").addEventListener("click", () => {
   S.student = true;
   S.name = $("#studentName").value.trim() || "Học sinh";
@@ -299,7 +300,9 @@ async function getShareQuestions() {
   return qs;
 }
 
-async function createShareLink() {
+async function getShareQuestions() { const needed=S.grid*S.grid; let qs=S.allQs.slice(0,needed); if($("#order").value==="shuffle") qs=[...qs].sort(()=>Math.random()-.5); return qs; }
+
+function createShareLink() {
   if (!S.img || S.allQs.length < S.grid * S.grid) return;
 
   const button = $("#shareBtn");
@@ -383,7 +386,9 @@ function downloadQR() {
   a.click();
 }
 
-async function copyShareLink() {
+async function downloadQR(){const c=$("#qrCode canvas");if(!c)return;const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download="QR-lat-manh-ghep.png";a.click();}
+
+function copyShareLink() {
   const value = $("#shareLink").value;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {

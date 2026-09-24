@@ -50,7 +50,7 @@ $("#excelInput").addEventListener("change", async (e) => {
         return "";
       };
 
-      const rawAns = get("đáp án", "dap an", "answer");
+      const rawAns = get("đáp án đúng", "đáp án", "dap an dung", "dap an", "answer");
       const ans = normalizeAnswer(rawAns);
 
       return {
@@ -109,7 +109,7 @@ $("#startBtn").addEventListener("click", () => startGame(false));
 $("#shareBtn").addEventListener("click", createShareLink);
 $("#copyShareBtn").addEventListener("click", copyShareLink);
 $("#downloadQRBtn").addEventListener("click", downloadQR);
-$("#downloadQRBtn").addEventListener("click", downloadQR);
+$("#templateBtn").addEventListener("click", downloadTemplate);
 $("#studentStart").addEventListener("click", () => {
   S.student = true;
   S.name = $("#studentName").value.trim() || "Học sinh";
@@ -311,9 +311,7 @@ async function getShareQuestions() {
   return qs;
 }
 
-async function getShareQuestions() { const needed=S.grid*S.grid; let qs=S.allQs.slice(0,needed); if($("#order").value==="shuffle") qs=[...qs].sort(()=>Math.random()-.5); return qs; }
-
-function createShareLink() {
+async function createShareLink() {
   if (!S.img || S.allQs.length < S.grid * S.grid) return;
 
   const button = $("#shareBtn");
@@ -398,9 +396,7 @@ function downloadQR() {
   a.click();
 }
 
-async function downloadQR(){const c=$("#qrCode canvas");if(!c)return;const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download="QR-lat-manh-ghep.png";a.click();}
-
-function copyShareLink() {
+async async function copyShareLink() {
   const value = $("#shareLink").value;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -441,3 +437,23 @@ function loadStudentLink() {
 
 checkReady();
 loadStudentLink();
+
+function downloadTemplate() {
+  const rows = [
+    ["ID", "Câu hỏi", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án đúng"],
+    [1, "DNA được cấu tạo từ những loại nucleotide nào?", "A, T, G, X", "A, U, G, X", "A, T, U, G", "T, U, G, X", "A"],
+    [2, "Đơn vị cấu tạo nên phân tử DNA là:", "Gene", "Nucleotide", "Amino acid", "Protein", "B"],
+    [3, "Trong phân tử DNA, nucleotide A liên kết bổ sung với nucleotide nào?", "G", "X", "T", "U", "C"],
+    [4, "Quá trình tổng hợp RNA dựa trên khuôn DNA được gọi là:", "Tái bản", "Phiên mã", "Dịch mã", "Đột biến", "B"],
+    [5, "Sản phẩm trực tiếp của quá trình phiên mã là:", "DNA", "Protein", "RNA", "Amino acid", "C"],
+    [6, "Quá trình tổng hợp protein dựa trên thông tin của mRNA được gọi là:", "Tái bản", "Phiên mã", "Dịch mã", "Nhân đôi", "C"],
+    [7, "Một đoạn DNA có trình tự trên một mạch là A–T–G–X–A–X. Trình tự mạch bổ sung là:", "T–A–X–G–T–G", "A–T–G–X–A–X", "U–A–X–G–U–G", "G–X–T–A–G–T", "A"],
+    [8, "Nếu trình tự nucleotide của một gene thay đổi, điều gì có thể xảy ra?", "Luôn làm cơ thể chết", "Có thể làm thay đổi protein và tính trạng", "Chắc chắn không ảnh hưởng", "Luôn làm tăng chiều cao", "B"],
+    [9, "Đơn phân cấu tạo nên nucleic acid là", "amino acid.", "protein.", "nucleotide.", "glucose.", "C"]
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{wch:6},{wch:52},{wch:28},{wch:28},{wch:28},{wch:28},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Câu hỏi");
+  XLSX.writeFile(wb, "mau-cau-hoi-lat-manh-ghep.xlsx");
+}

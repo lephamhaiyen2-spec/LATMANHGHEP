@@ -4,6 +4,7 @@ button,input,select{font:inherit}.topbar{height:76px;background:#fff;border-bott
 .brand{font-weight:900;font-size:21px}.sub{color:var(--muted);font-size:13px}.ghost{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer}
 main{max-width:1180px;margin:28px auto;padding:0 18px}.setup{display:grid;grid-template-columns:1.25fr .75fr;gap:20px}.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 12px 35px #263b6510}
 .panel h1{margin:0 0 8px;font-size:30px}.panel h2{margin:0 0 18px;font-size:19px}.hint,.filehint{color:var(--muted);font-size:14px}
+.bootError{margin:0 0 18px;padding:14px 16px;border-radius:14px;background:#fff0f0;border:1px solid #f3b7b7;color:#a33434;font-weight:800}
 .grid2,.grid3{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}.grid3{grid-template-columns:repeat(3,1fr)}.field{margin-top:20px}
 label{display:block;font-weight:800;margin-bottom:9px}.field input[type=file],select,.studentName input{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}
 .choices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.choices button{background:#f5f7fc;border:1px solid var(--line);border-radius:13px;padding:14px 8px;font-weight:800;cursor:pointer}.choices small{display:block;color:var(--muted);font-weight:500}

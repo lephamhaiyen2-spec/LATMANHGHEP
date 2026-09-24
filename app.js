@@ -304,7 +304,7 @@ function resizeImage(dataUrl) {
   });
 }
 
-async function getShareQuestions() {
+function getShareQuestions() {
   const needed = S.grid * S.grid;
   let qs = S.allQs.slice(0, needed);
   if ($("#order").value === "shuffle") qs = [...qs].sort(() => Math.random() - 0.5);

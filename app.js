@@ -451,7 +451,7 @@ function downloadQR() {
   a.click();
 }
 
-async async function copyShareLink() {
+async function copyShareLink() {
   const value = $("#shareLink").value;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {

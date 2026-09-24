@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lật mảnh ghép — Ôn tập</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head>
 <body><div id="app">
 <header class="topbar"><div><div class="brand">🧩 LẬT MẢNH GHÉP</div><div class="sub">Ôn tập bằng hình ảnh • Câu hỏi • Mảnh ghép</div></div><button id="resetBtn" class="ghost">Thiết lập lại</button></header>
 <main><section id="setup" class="setup"><div class="panel">
@@ -11,7 +12,14 @@
 <div class="field"><label>3. Số mảnh ghép</label><div class="choices" id="gridChoices"><button data-grid="3">3 × 3<small>9 câu</small></button><button data-grid="4">4 × 4<small>16 câu</small></button><button data-grid="5">5 × 5<small>25 câu</small></button><button data-grid="6">6 × 6<small>36 câu</small></button></div></div>
 <div class="grid3"><div class="field"><label>Thời gian</label><select id="time"><option value="180">3 phút</option><option value="300" selected>5 phút</option><option value="420">7 phút</option><option value="600">10 phút</option></select></div><div class="field"><label>Thứ tự câu hỏi</label><select id="order"><option value="sequential">Theo thứ tự Excel</option><option value="shuffle">Trộn ngẫu nhiên</option></select></div><div class="field"><label>Khi trả lời sai</label><select id="answerMode"><option value="hide">Không hiện đáp án đúng</option><option value="show">Hiện đáp án đúng</option></select></div></div>
 <div id="validation" class="validation"></div><div class="actionRow"><button id="startBtn" class="primary" disabled>🚀 Bắt đầu</button><button id="shareBtn" class="shareBtn" disabled>🔗 Giao bài cho học sinh</button></div>
-<div id="shareBox" class="shareBox hidden"><b>Link giao bài</b><div class="shareLine"><input id="shareLink" readonly><button id="copyShareBtn" class="ghost">Sao chép</button></div><small>Học sinh mở link này trên điện thoại/iPad/máy tính và tự làm bài.</small></div>
+<div id="shareBox" class="shareBox hidden">
+  <b>🔗 Link giao bài</b>
+  <div class="shareLine"><input id="shareLink" readonly><button id="copyShareBtn" class="ghost">Sao chép</button></div>
+  <div class="shareGrid">
+    <div><div id="qrCode" class="qrCode"></div><button id="downloadQRBtn" class="ghost qrBtn">⬇ Tải mã QR</button></div>
+    <div class="shareInfo"><p id="shareNote"></p><small id="shareLimit"></small></div>
+  </div>
+</div>
 <a class="template" href="question-template.csv" download>⬇ Tải mẫu câu hỏi</a></div>
 <div class="panel previewPanel"><h2>Xem trước ảnh</h2><div id="preview" class="preview">Chọn ảnh để xem trước • khung 16:9</div><div class="rules"><b>Luật chơi</b><ul><li>Đúng → mở đúng mảnh tương ứng.</li><li>Sai → mảnh không mở và câu bị khóa.</li><li>Mỗi câu chỉ được trả lời 1 lần.</li><li>Hết giờ → tự kết thúc.</li></ul></div></div></section>
 <section id="student" class="student hidden"><div class="panel studentCard"><div class="studentBadge">🎓 BÀI GIAO CHO HỌC SINH</div><h1 id="studentTitle">Lật mảnh ghép</h1><p id="studentMeta" class="hint"></p><div class="studentName"><label>Họ và tên</label><input id="studentName" placeholder="Nhập họ và tên của em"></div><button id="studentStart" class="primary">🚀 Bắt đầu làm bài</button></div></section>

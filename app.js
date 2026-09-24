@@ -369,15 +369,17 @@ function decodeData(text) {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-function resizeImage(dataUrl) {
+function resizeImage(dataUrl, width = 180, height = 101, quality = 0.16) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 800; canvas.height = 450;
+      canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, 800, 450);
-      resolve(canvas.toDataURL("image/jpeg", 0.55));
+      ctx.drawImage(img, 0, 0, width, height);
+      let out = canvas.toDataURL("image/webp", quality);
+      if (!out.startsWith("data:image/webp")) out = canvas.toDataURL("image/jpeg", quality);
+      resolve(out);
     };
     img.onerror = reject;
     img.src = dataUrl;
@@ -400,7 +402,7 @@ async function createShareLink() {
   $("#shareBox").classList.add("hidden");
 
   try {
-    const img = await resizeImage(S.img);
+    const img = await resizeImage(S.img, 180, 101, 0.16);
     const qs = getShareQuestions();
     const data = {
       v: 3,
@@ -412,13 +414,19 @@ async function createShareLink() {
       qs,
       img
     };
-    const link = location.origin + location.pathname + "#play=" + encodeData(data);
+    let link = location.origin + location.pathname + "#play=" + encodeData(data);
+    if (link.length > 7000) {
+      data.img = await resizeImage(S.img, 120, 68, 0.10);
+      link = location.origin + location.pathname + "#play=" + encodeData(data);
+    }
 
-    if (link.length > 120000) {
+    if (link.length > 8000) {
       throw new Error("LINK_TOO_LONG");
     }
 
     $("#shareLink").value = link;
+    const openLink = $("#shareOpenLink");
+    if (openLink) { openLink.href = link; openLink.textContent = "Mở link giao bài trên thiết bị khác ↗"; }
     $("#shareBox").classList.remove("hidden");
     $("#shareNote").textContent =
       "✓ Đã tạo link. " + qs.length + " câu hỏi sẽ được giao đúng theo thứ tự đã chọn.";
@@ -449,18 +457,17 @@ function renderQR(link) {
   const box = $("#qrCode");
   box.innerHTML = "";
   if (typeof QRCode === "undefined") {
-    box.textContent = "QR chưa tải được. Bạn vẫn có thể sao chép link.";
+    box.textContent = "QR chưa tải được. Bạn vẫn có thể mở bằng link.";
+    return;
+  }
+  if (link.length > 2800) {
+    box.textContent = "Link còn dài để QR quét ổn định. Hãy thử ảnh đơn giản hơn hoặc 3×3.";
     return;
   }
   try {
-    new QRCode(box, {
-      text: link,
-      width: 190,
-      height: 190,
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    new QRCode(box, {text:link,width:190,height:190,correctLevel:QRCode.CorrectLevel.L});
   } catch (_) {
-    box.textContent = "Không tạo được QR cho link này.";
+    box.textContent = "Không tạo được QR. Hãy dùng nút Mở link giao bài.";
   }
 }
 

@@ -16,6 +16,7 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 const $ = (s) => document.querySelector(s);
+const SHARE_API = window.LATMANHGHEP_SHARE_API || "https://latmanhghep-share.REPLACE.workers.dev";
 
 const S = {
   grid: 3, allQs: [], qs: [], img: null, time: 300, left: 300,
@@ -321,6 +322,7 @@ function formatTime(sec) {
 
 function finishGame() {
   if (S.end) return;
+  if (S.student) submitStudentResult();
   S.end = true;
   clearInterval(S.timer);
 
@@ -395,62 +397,27 @@ function getShareQuestions() {
 
 async function createShareLink() {
   if (!S.img || S.allQs.length < S.grid * S.grid) return;
-
-  const button = $("#shareBtn");
-  button.disabled = true;
-  button.textContent = "⏳ Đang tạo link...";
+  const button=$("#shareBtn"); button.disabled=true; button.textContent="⏳ Đang tạo link...";
   $("#shareBox").classList.add("hidden");
-
   try {
-    const img = await resizeImage(S.img, 180, 101, 0.16);
-    const qs = getShareQuestions();
-    const data = {
-      v: 3,
-      title: "Lật mảnh ghép",
-      grid: S.grid,
-      time: S.time,
-      answerMode: S.answerMode,
-      order: $("#order").value,
-      qs,
-      img
-    };
-    let link = location.origin + location.pathname + "#play=" + encodeData(data);
-    if (link.length > 7000) {
-      data.img = await resizeImage(S.img, 120, 68, 0.10);
-      link = location.origin + location.pathname + "#play=" + encodeData(data);
-    }
-
-    if (link.length > 8000) {
-      throw new Error("LINK_TOO_LONG");
-    }
-
-    $("#shareLink").value = link;
-    const openLink = $("#shareOpenLink");
-    if (openLink) { openLink.href = link; openLink.textContent = "Mở link giao bài trên thiết bị khác ↗"; }
+    const img=await resizeImage(S.img,180,101,0.16), qs=getShareQuestions();
+    const response=await fetch(SHARE_API+"/api/share",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({title:"Lật mảnh ghép",grid:S.grid,time:S.time,answerMode:S.answerMode,order:$("#order").value,qs,img})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.code) throw new Error(data.error||"SHARE_API_ERROR");
+    const link=new URL(data.studentPath,location.origin+location.pathname).href;
+    const teacherLink=new URL(data.teacherPath,location.origin+location.pathname).href;
+    $("#shareLink").value=link;
+    const open=$("#shareOpenLink"); if(open){open.href=link;open.textContent="Mở link giao bài trên thiết bị khác ↗";}
+    const hist=$("#teacherHistoryLink"); if(hist){hist.href=teacherLink;hist.textContent="📊 Xem lịch sử & kết quả 24 giờ ↗";}
     $("#shareBox").classList.remove("hidden");
-    $("#shareNote").textContent =
-      "✓ Đã tạo link. " + qs.length + " câu hỏi sẽ được giao đúng theo thứ tự đã chọn.";
-    $("#shareLimit").textContent =
-      "Lưu ý: đây là link tự chứa dữ liệu, không cần máy chủ. Học sinh làm bài trên thiết bị riêng nhưng kết quả chưa tự gửi về máy giáo viên.";
-
+    $("#shareNote").textContent="✓ Đã tạo link ngắn: "+data.code+". Học sinh có thể bấm link hoặc quét QR.";
+    $("#shareLimit").textContent="Bài giao được lưu 24 giờ. Kết quả học sinh sẽ tự gửi về lịch sử của giáo viên khi các em hoàn thành.";
     renderQR(link);
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(link);
-        $("#copyShareBtn").textContent = "✓ Đã sao chép";
-        setTimeout(() => $("#copyShareBtn").textContent = "Sao chép", 1800);
-      } catch (_) {}
-    }
-  } catch (err) {
-    const msg = err.message === "LINK_TOO_LONG"
-      ? "Link quá dài. Hãy dùng ảnh nhẹ hơn hoặc giảm số mảnh ghép."
-      : "Không tạo được link giao bài. Hãy thử ảnh nhỏ hơn.";
-    alert(msg);
-  } finally {
-    button.disabled = false;
-    button.textContent = "🔗 Giao bài cho học sinh";
-  }
+    if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(link);$("#copyShareBtn").textContent="✓ Đã sao chép";setTimeout(()=>$("#copyShareBtn").textContent="Sao chép",1800);}catch(_){}}
+  } catch(err) {
+    alert(err.message==="Failed to fetch"?"Chưa kết nối được máy chủ lưu bài. Hãy cấu hình SHARE_API sau khi triển khai worker.":"Không tạo được link giao bài: "+(err.message||"lỗi máy chủ"));
+  } finally {button.disabled=false;button.textContent="🔗 Giao bài cho học sinh";}
 }
 
 function renderQR(link) {
@@ -497,28 +464,50 @@ async function copyShareLink() {
   setTimeout(() => $("#copyShareBtn").textContent = "Sao chép", 1800);
 }
 
-function loadStudentLink() {
-  if (!location.hash.startsWith("#play=")) return;
-
-  try {
-    const d = decodeData(location.hash.slice(6));
-    if (!d || ![2,3].includes(Number(d.v)) || !Array.isArray(d.qs) || !d.img) throw new Error("invalid");
-    if (![3,4,5,6].includes(Number(d.grid)) || d.qs.length !== Number(d.grid) * Number(d.grid)) throw new Error("invalid");
-
-    S.student = true;
-    S.grid = Number(d.grid);
-    S.time = Number(d.time);
-    S.answerMode = d.answerMode || "hide";
-    S.allQs = d.qs;
-    S.img = d.img;
-
-    $("#setup").classList.add("hidden");
-    $("#student").classList.remove("hidden");
-    $("#studentTitle").textContent = d.title || "Lật mảnh ghép";
-    $("#studentMeta").textContent = S.grid + "×" + S.grid + " • " + d.qs.length + " câu • " + Math.round(S.time / 60) + " phút";
-  } catch (err) {
-    alert("Link giao bài không hợp lệ hoặc đã bị cắt.");
+async function loadStudentLink() {
+  const params=new URLSearchParams(location.search), code=params.get("s"), teacher=params.get("teacher");
+  if(teacher){await loadTeacherHistory(teacher);return;}
+  if(!code){
+    if(!location.hash.startsWith("#play=")) return;
+    try{
+      const d=decodeData(location.hash.slice(6)); if(!d||!Array.isArray(d.qs)||!d.img) throw 0;
+      S.student=true;S.grid=Number(d.grid);S.time=Number(d.time);S.answerMode=d.answerMode||"hide";S.allQs=d.qs;S.img=d.img;
+      $("#setup").classList.add("hidden");$("#student").classList.remove("hidden");$("#studentTitle").textContent=d.title||"Lật mảnh ghép";$("#studentMeta").textContent=S.grid+"×"+S.grid+" • "+d.qs.length+" câu • "+Math.round(S.time/60)+" phút";
+    }catch(_){alert("Link giao bài không hợp lệ hoặc đã bị cắt.");}
+    return;
   }
+  if(!/^[A-Za-z0-9]{8}$/.test(code)){alert("Mã giao bài không hợp lệ.");return;}
+  try{
+    const r=await fetch(SHARE_API+"/api/share?code="+encodeURIComponent(code)), d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.code) throw new Error(d.error||"NOT_FOUND");
+    S.student=true;S.shareCode=d.code;S.grid=Number(d.grid);S.time=Number(d.time);S.answerMode=d.answerMode||"hide";S.allQs=d.qs;S.img=d.img;
+    $("#setup").classList.add("hidden");$("#student").classList.remove("hidden");$("#studentTitle").textContent=d.title||"Lật mảnh ghép";$("#studentMeta").textContent=S.grid+"×"+S.grid+" • "+d.qs.length+" câu • "+Math.round(S.time/60)+" phút • Link còn hiệu lực 24 giờ";
+  }catch(err){alert(err.message==="NOT_FOUND"?"Bài giao đã hết hạn hoặc không tồn tại.":"Không tải được bài giao. Hãy kiểm tra kết nối Internet.");}
+}
+
+async function submitStudentResult(){
+  if(!S.student||!S.shareCode)return;
+  try{await fetch(SHARE_API+"/api/result",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:S.shareCode,name:S.name||"Học sinh",correct:S.right,total:S.qs.length,opened:S.open.size,score:S.right*100,timeLeft:S.left})});}catch(_){}
+}
+
+async function loadTeacherHistory(token){
+  if(!/^[A-Za-z0-9]{20}$/.test(token)){alert("Link lịch sử giáo viên không hợp lệ.");return;}
+  try{
+    const r=await fetch(SHARE_API+"/api/history?token="+encodeURIComponent(token)),d=await r.json().catch(()=>({}));
+    if(!r.ok)throw 0;
+    $("#setup").classList.add("hidden");$("#student").classList.add("hidden");$("#game").classList.add("hidden");$("#result").classList.remove("hidden");
+    const as=d.assignments||[]; let html="<div class='historyWrap'><h2>📊 Lịch sử giao bài — 24 giờ gần nhất</h2>";
+    if(!as.length)html+="<p>Chưa có bài giao nào trong 24 giờ gần nhất.</p>";
+    for(const a of as){
+      html+="<div class='historyCard'><div class='historyHead'><b>"+escapeHtml(a.title)+"</b><span>"+new Date(a.createdAt).toLocaleString("vi-VN")+"</span></div><div class='historyMeta'>"+a.grid+"×"+a.grid+" • "+a.total+" câu • Mã: "+escapeHtml(a.code)+"</div>";
+      const rs=a.results||[];
+      if(!rs.length)html+="<p class='historyEmpty'>Chưa có học sinh hoàn thành.</p>";
+      else{html+="<table class='historyTable'><thead><tr><th>Học sinh</th><th>Đúng</th><th>Điểm</th><th>Mảnh</th><th>Thời điểm</th></tr></thead><tbody>";for(const x of rs)html+="<tr><td>"+escapeHtml(x.name)+"</td><td>"+x.correct+"/"+x.total+"</td><td>"+x.score+"</td><td>"+x.opened+"</td><td>"+new Date(x.completedAt).toLocaleString("vi-VN")+"</td></tr>";html+="</tbody></table>";}
+      html+="</div>";
+    }
+    html+="<button class='primary' onclick='location.href=location.pathname'>← Quay lại tạo bài</button></div>";
+    $("#result").querySelector(".resultCard").innerHTML=html;
+  }catch(_){alert("Không tải được lịch sử 24 giờ. Hãy kiểm tra kết nối hoặc link giáo viên.");}
 }
 
 checkReady();

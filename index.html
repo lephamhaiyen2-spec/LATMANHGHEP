@@ -1,8 +1,7 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lật mảnh ghép — Ôn tập</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head>
 <body><div id="app">
 <header class="topbar"><div><div class="brand">🧩 LẬT MẢNH GHÉP</div><div class="sub">Ôn tập bằng hình ảnh • Câu hỏi • Mảnh ghép</div></div><button id="resetBtn" class="ghost">Thiết lập lại</button></header>
 <main><section id="setup" class="setup"><div class="panel">
@@ -20,7 +19,7 @@
     <div class="shareInfo"><p id="shareNote"></p><small id="shareLimit"></small></div>
   </div>
 </div>
-<a class="template" href="question-template.csv" download>⬇ Tải mẫu câu hỏi</a></div>
+<button id="templateBtn" class="template">⬇ Tải mẫu Excel (.xlsx)</button></div>
 <div class="panel previewPanel"><h2>Xem trước ảnh</h2><div id="preview" class="preview">Chọn ảnh để xem trước • khung 16:9</div><div class="rules"><b>Luật chơi</b><ul><li>Đúng → mở đúng mảnh tương ứng.</li><li>Sai → mảnh không mở và câu bị khóa.</li><li>Mỗi câu chỉ được trả lời 1 lần.</li><li>Hết giờ → tự kết thúc.</li></ul></div></div></section>
 <section id="student" class="student hidden"><div class="panel studentCard"><div class="studentBadge">🎓 BÀI GIAO CHO HỌC SINH</div><h1 id="studentTitle">Lật mảnh ghép</h1><p id="studentMeta" class="hint"></p><div class="studentName"><label>Họ và tên</label><input id="studentName" placeholder="Nhập họ và tên của em"></div><button id="studentStart" class="primary">🚀 Bắt đầu làm bài</button></div></section>
 <section id="game" class="game hidden"><div class="gameHead"><div><h1>Lật mảnh ghép</h1><span id="gameMeta"></span></div><div class="stats"><div>⏱ <b id="timer">05:00</b></div><div>⭐ <b id="score">0</b></div></div></div>

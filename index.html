@@ -4,26 +4,19 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
 <body><div id="app">
 <header class="topbar"><div><div class="brand">🧩 LẬT MẢNH GHÉP</div><div class="sub">Ôn tập bằng hình ảnh • Câu hỏi • Mảnh ghép</div></div><button id="resetBtn" class="ghost">Thiết lập lại</button></header>
-<main>
-<section id="setup" class="setup"><div class="panel">
+<main><section id="setup" class="setup"><div class="panel">
 <h1>Tạo trò chơi mới</h1><p class="hint">Tải ảnh bí mật và bộ câu hỏi. Có thể tạo <b>link giao bài cho học sinh</b>.</p>
 <div class="grid2"><div class="field"><label>1. Ảnh bí mật — khuyến nghị 16:9</label><input id="imageInput" type="file" accept="image/*"><div id="imageName" class="filehint">Chưa chọn ảnh</div></div>
 <div class="field"><label>2. Bộ câu hỏi Excel</label><input id="excelInput" type="file" accept=".xlsx,.xls,.csv"><div id="excelName" class="filehint">Chưa chọn file</div></div></div>
 <div class="field"><label>3. Số mảnh ghép</label><div class="choices" id="gridChoices"><button data-grid="3">3 × 3<small>9 câu</small></button><button data-grid="4">4 × 4<small>16 câu</small></button><button data-grid="5">5 × 5<small>25 câu</small></button><button data-grid="6">6 × 6<small>36 câu</small></button></div></div>
-<div class="grid3"><div class="field"><label>Thời gian</label><select id="time"><option value="180">3 phút</option><option value="300" selected>5 phút</option><option value="420">7 phút</option><option value="600">10 phút</option></select></div>
-<div class="field"><label>Thứ tự câu hỏi</label><select id="order"><option value="sequential">Theo thứ tự Excel</option><option value="shuffle">Trộn ngẫu nhiên</option></select></div>
-<div class="field"><label>Khi trả lời sai</label><select id="answerMode"><option value="hide">Không hiện đáp án đúng</option><option value="show">Hiện đáp án đúng</option></select></div></div>
-<div id="validation" class="validation"></div>
-<div class="actionRow"><button id="startBtn" class="primary" disabled>🚀 Bắt đầu</button><button id="shareBtn" class="shareBtn" disabled>🔗 Giao bài cho học sinh</button></div>
-<div id="shareBox" class="shareBox hidden"><b>Link giao bài</b><div class="shareLine"><input id="shareLink" readonly><button id="copyShareBtn" class="ghost">Sao chép</button></div><small>Học sinh mở link này trên điện thoại/iPad/máy tính và tự làm bài. Ảnh + câu hỏi được đóng gói trong link, không cần đăng nhập.</small></div>
+<div class="grid3"><div class="field"><label>Thời gian</label><select id="time"><option value="180">3 phút</option><option value="300" selected>5 phút</option><option value="420">7 phút</option><option value="600">10 phút</option></select></div><div class="field"><label>Thứ tự câu hỏi</label><select id="order"><option value="sequential">Theo thứ tự Excel</option><option value="shuffle">Trộn ngẫu nhiên</option></select></div><div class="field"><label>Khi trả lời sai</label><select id="answerMode"><option value="hide">Không hiện đáp án đúng</option><option value="show">Hiện đáp án đúng</option></select></div></div>
+<div id="validation" class="validation"></div><div class="actionRow"><button id="startBtn" class="primary" disabled>🚀 Bắt đầu</button><button id="shareBtn" class="shareBtn" disabled>🔗 Giao bài cho học sinh</button></div>
+<div id="shareBox" class="shareBox hidden"><b>Link giao bài</b><div class="shareLine"><input id="shareLink" readonly><button id="copyShareBtn" class="ghost">Sao chép</button></div><small>Học sinh mở link này trên điện thoại/iPad/máy tính và tự làm bài.</small></div>
 <a class="template" href="question-template.csv" download>⬇ Tải mẫu câu hỏi</a></div>
-<div class="panel previewPanel"><h2>Xem trước ảnh</h2><div id="preview" class="preview">Chọn ảnh để xem trước • khung 16:9</div><div class="rules"><b>Luật chơi</b><ul><li>Đúng → mở mảnh ghép.</li><li>Sai → mảnh không mở và câu bị khóa.</li><li>Mỗi câu chỉ được trả lời 1 lần.</li><li>Hết giờ → tự kết thúc.</li></ul></div></div></section>
-
+<div class="panel previewPanel"><h2>Xem trước ảnh</h2><div id="preview" class="preview">Chọn ảnh để xem trước • khung 16:9</div><div class="rules"><b>Luật chơi</b><ul><li>Đúng → mở đúng mảnh tương ứng.</li><li>Sai → mảnh không mở và câu bị khóa.</li><li>Mỗi câu chỉ được trả lời 1 lần.</li><li>Hết giờ → tự kết thúc.</li></ul></div></div></section>
 <section id="student" class="student hidden"><div class="panel studentCard"><div class="studentBadge">🎓 BÀI GIAO CHO HỌC SINH</div><h1 id="studentTitle">Lật mảnh ghép</h1><p id="studentMeta" class="hint"></p><div class="studentName"><label>Họ và tên</label><input id="studentName" placeholder="Nhập họ và tên của em"></div><button id="studentStart" class="primary">🚀 Bắt đầu làm bài</button></div></section>
-
 <section id="game" class="game hidden"><div class="gameHead"><div><h1>Lật mảnh ghép</h1><span id="gameMeta"></span></div><div class="stats"><div>⏱ <b id="timer">05:00</b></div><div>⭐ <b id="score">0</b></div></div></div>
 <div class="progress"><div id="progressBar"></div></div><div class="gameLayout"><div id="board" class="board"></div><aside class="quiz panel"><div class="qtop"><span id="qIndex">Câu 1</span><span id="qStatus">Chưa trả lời</span></div><h2 id="question"></h2><div id="answers"></div><div id="feedback"></div></aside></div>
 <div class="bottom"><span id="progressText"></span><button id="finishBtn" class="ghost">Kết thúc</button></div></section>
-
-<section id="result" class="result hidden"><div class="panel resultCard"><div class="trophy">🎉</div><h1>Hoàn thành!</h1><p id="resultSummary"></p><div id="resultBoard" class="board resultBoard"></div><button id="newGameBtn" class="primary">Làm lại / Tạo trò chơi mới</button></div></section>
+<section id="result" class="result hidden"><div class="panel resultCard"><div class="trophy">🎉</div><h1>Hoàn thành!</h1><p id="resultSummary"></p><div id="resultBoard" class="board resultBoard"></div><button id="newGameBtn" class="primary">Tạo trò chơi mới</button></div></section>
 </main></div><script src="app.js"></script></body></html>

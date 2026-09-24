@@ -331,6 +331,7 @@ function createShareLink() {
 
     $("#shareLink").value = link;
     $("#shareBox").classList.remove("hidden");
+    if (typeof QRCode !== "undefined") { $("#qrCode").innerHTML=""; new QRCode($("#qrCode"), {text:link,width:180,height:180}); }
     $("#shareNote").textContent =
       "✓ Đã tạo link. " + qs.length + " câu hỏi sẽ được giao đúng theo thứ tự đã chọn.";
     $("#shareLimit").textContent =

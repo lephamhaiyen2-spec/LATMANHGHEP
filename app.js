@@ -17,6 +17,15 @@ window.addEventListener("unhandledrejection", (event) => {
 
 const $ = (s) => document.querySelector(s);
 const SHARE_API = window.LATMANHGHEP_SHARE_API || "https://latmanhghep-share.REPLACE.workers.dev";
+const TEACHER_TOKEN_KEY = "latmanhghep_teacher_token_v1";
+function getTeacherToken() {
+  let token = localStorage.getItem(TEACHER_TOKEN_KEY);
+  if (!token || !/^[A-Za-z0-9]{20}$/.test(token)) {
+    token = Array.from(crypto.getRandomValues(new Uint8Array(20)), b => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 56]).join("");
+    localStorage.setItem(TEACHER_TOKEN_KEY, token);
+  }
+  return token;
+}
 
 const S = {
   grid: 3, allQs: [], qs: [], img: null, time: 300, left: 300,
@@ -400,9 +409,12 @@ async function createShareLink() {
   const button=$("#shareBtn"); button.disabled=true; button.textContent="⏳ Đang tạo link...";
   $("#shareBox").classList.add("hidden");
   try {
+    if (SHARE_API.includes("REPLACE.workers.dev")) {
+      throw new Error("CHUA_CAU_HINH_WORKER");
+    }
     const img=await resizeImage(S.img,180,101,0.16), qs=getShareQuestions();
     const response=await fetch(SHARE_API+"/api/share",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({title:"Lật mảnh ghép",grid:S.grid,time:S.time,answerMode:S.answerMode,order:$("#order").value,qs,img})});
+      body:JSON.stringify({title:"Lật mảnh ghép",grid:S.grid,time:S.time,answerMode:S.answerMode,order:$("#order").value,qs,img,teacherToken:getTeacherToken()})});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.code) throw new Error(data.error||"SHARE_API_ERROR");
     const link=new URL(data.studentPath,location.origin+location.pathname).href;
@@ -416,7 +428,7 @@ async function createShareLink() {
     renderQR(link);
     if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(link);$("#copyShareBtn").textContent="✓ Đã sao chép";setTimeout(()=>$("#copyShareBtn").textContent="Sao chép",1800);}catch(_){}}
   } catch(err) {
-    alert(err.message==="Failed to fetch"?"Chưa kết nối được máy chủ lưu bài. Hãy cấu hình SHARE_API sau khi triển khai worker.":"Không tạo được link giao bài: "+(err.message||"lỗi máy chủ"));
+    alert(err.message==="CHUA_CAU_HINH_WORKER"?"Bài giao chưa thể gửi vì chưa có địa chỉ Cloudflare Worker thật. Tôi cần địa chỉ *.workers.dev sau khi cô triển khai Worker.":err.message==="Failed to fetch"?"Không kết nối được máy chủ lưu bài. Hãy kiểm tra địa chỉ Worker và CORS.":"Không tạo được link giao bài: "+(err.message||"lỗi máy chủ"));
   } finally {button.disabled=false;button.textContent="🔗 Giao bài cho học sinh";}
 }
 

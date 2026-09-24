@@ -75,11 +75,19 @@ $("#excelInput").addEventListener("change", async (e) => {
 
 function checkReady() {
   const needed = S.grid * S.grid;
-  const ok = Boolean(S.img) && S.allQs.length >= needed;
-  $("#validation").textContent = ok
-    ? "✓ Sẵn sàng: " + needed + " mảnh / " + needed + " câu hỏi"
-    : "Cần ảnh và ít nhất " + needed + " câu hỏi hợp lệ.";
-  $("#validation").className = ok ? "validation ok" : "validation err";
+  const hasImage = Boolean(S.img);
+  const hasQuestions = S.allQs.length >= needed;
+  const ok = hasImage && hasQuestions;
+  if (ok) {
+    $("#validation").textContent = "✓ Sẵn sàng: " + needed + " mảnh / " + needed + " câu hỏi hợp lệ.";
+    $("#validation").className = "validation ok";
+  } else {
+    const missing = [];
+    if (!hasImage) missing.push("ảnh bí mật");
+    if (!hasQuestions) missing.push("ít nhất " + needed + " câu hỏi hợp lệ");
+    $("#validation").textContent = "Cần " + missing.join(" và ") + ".";
+    $("#validation").className = "validation err";
+  }
   $("#startBtn").disabled = !ok;
   $("#shareBtn").disabled = !ok;
 }
@@ -89,6 +97,7 @@ $("#answerMode").addEventListener("change", (e) => S.answerMode = e.target.value
 $("#startBtn").addEventListener("click", () => startGame(false));
 $("#shareBtn").addEventListener("click", createShareLink);
 $("#copyShareBtn").addEventListener("click", copyShareLink);
+$("#downloadQRBtn").addEventListener("click", downloadQR);
 $("#studentStart").addEventListener("click", () => {
   S.student = true;
   S.name = $("#studentName").value.trim() || "Học sinh";
@@ -283,41 +292,95 @@ function resizeImage(dataUrl) {
   });
 }
 
+async function getShareQuestions() {
+  const needed = S.grid * S.grid;
+  let qs = S.allQs.slice(0, needed);
+  if ($("#order").value === "shuffle") qs = [...qs].sort(() => Math.random() - 0.5);
+  return qs;
+}
+
 async function createShareLink() {
   if (!S.img || S.allQs.length < S.grid * S.grid) return;
 
   const button = $("#shareBtn");
   button.disabled = true;
   button.textContent = "⏳ Đang tạo link...";
+  $("#shareBox").classList.add("hidden");
 
   try {
     const img = await resizeImage(S.img);
-    const needed = S.grid * S.grid;
+    const qs = getShareQuestions();
     const data = {
-      v: 2,
+      v: 3,
       title: "Lật mảnh ghép",
       grid: S.grid,
       time: S.time,
       answerMode: S.answerMode,
-      qs: S.allQs.slice(0, needed),
+      order: $("#order").value,
+      qs,
       img
     };
     const link = location.origin + location.pathname + "#play=" + encodeData(data);
+
+    if (link.length > 120000) {
+      throw new Error("LINK_TOO_LONG");
+    }
+
     $("#shareLink").value = link;
     $("#shareBox").classList.remove("hidden");
-    $("#shareBox small").textContent = link.length > 180000
-      ? "⚠ Link dài. Nếu gửi không được, cần chuyển sang chế độ phòng trực tuyến có máy chủ."
-      : "Học sinh mở link trên điện thoại/iPad/máy tính và tự làm bài. Không cần đăng nhập.";
+    $("#shareNote").textContent =
+      "✓ Đã tạo link. " + qs.length + " câu hỏi sẽ được giao đúng theo thứ tự đã chọn.";
+    $("#shareLimit").textContent =
+      "Lưu ý: đây là link tự chứa dữ liệu, không cần máy chủ. Học sinh làm bài trên thiết bị riêng nhưng kết quả chưa tự gửi về máy giáo viên.";
+
+    renderQR(link);
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      try { await navigator.clipboard.writeText(link); } catch (_) {}
+      try {
+        await navigator.clipboard.writeText(link);
+        $("#copyShareBtn").textContent = "✓ Đã sao chép";
+        setTimeout(() => $("#copyShareBtn").textContent = "Sao chép", 1800);
+      } catch (_) {}
     }
   } catch (err) {
-    alert("Không tạo được link giao bài. Hãy thử ảnh nhỏ hơn.");
+    const msg = err.message === "LINK_TOO_LONG"
+      ? "Link quá dài. Hãy dùng ảnh nhẹ hơn hoặc giảm số mảnh ghép."
+      : "Không tạo được link giao bài. Hãy thử ảnh nhỏ hơn.";
+    alert(msg);
   } finally {
     button.disabled = false;
     button.textContent = "🔗 Giao bài cho học sinh";
   }
+}
+
+function renderQR(link) {
+  const box = $("#qrCode");
+  box.innerHTML = "";
+  if (typeof QRCode === "undefined") {
+    box.textContent = "QR chưa tải được. Bạn vẫn có thể sao chép link.";
+    return;
+  }
+  try {
+    new QRCode(box, {
+      text: link,
+      width: 190,
+      height: 190,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch (_) {
+    box.textContent = "Không tạo được QR cho link này.";
+  }
+}
+
+function downloadQR() {
+  const canvas = $("#qrCode canvas");
+  const img = $("#qrCode img");
+  let src = canvas ? canvas.toDataURL("image/png") : (img ? img.src : "");
+  if (!src) return;
+  const a = document.createElement("a");
+  a.href = src;
+  a.download = "QR-lat-manh-ghep.png";
+  a.click();
 }
 
 async function copyShareLink() {
@@ -340,7 +403,8 @@ function loadStudentLink() {
 
   try {
     const d = decodeData(location.hash.slice(6));
-    if (!d || d.v !== 2 || !Array.isArray(d.qs) || !d.img) throw new Error("invalid");
+    if (!d || ![2,3].includes(Number(d.v)) || !Array.isArray(d.qs) || !d.img) throw new Error("invalid");
+    if (![3,4,5,6].includes(Number(d.grid)) || d.qs.length !== Number(d.grid) * Number(d.grid)) throw new Error("invalid");
 
     S.student = true;
     S.grid = Number(d.grid);
